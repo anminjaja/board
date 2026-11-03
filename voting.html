@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>실시간 투표 집계기</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .container { max-width: 400px; margin: 0 auto; }
+    .btn { padding: 10px 15px; margin-right: 5px; cursor: pointer; border: 1px solid #ccc; background: #fff; }
+    .result-box { margin-top: 15px; }
+    .bar-bg { width: 100%; background-color: #eee; border-radius: 4px; overflow: hidden; margin-top: 5px; }
+    .bar-fill { height: 20px; background-color: #4CAF50; width: 0%; transition: width 0.4s ease; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h3>투표 항목 선택</h3>
+    <!-- 항목 클릭 시 해당 파라미터 전달 -->
+    <button class="btn" onclick="castVote('A안')">A안 투표</button>
+    <button class="btn" onclick="castVote('B안')">B안 투표</button>
+
+    <h3 style="margin-top: 30px;">현재 득표 현황</h3>
+    <div id="chart-container"></div>
+  </div>
+
+  <script>
+    // 배포한 GAS 웹앱 URL로 변경하세요.
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyIvcPSo6-VfRj2l2mjlXgBg4v3Y5PSbysT4SyyegjfB0AEUMHYvE4xb_lNDIr-Hg7z/exec';
+
+    // 전체 투표 결과 불러오기 및 차트 렌더링
+    async function fetchResults() {
+      const res = await fetch(`${GAS_WEB_APP_URL}?action=getResults`);
+      const data = await res.json();
+      renderChart(data);
+    }
+
+    // 투표 실행
+    async function castVote(option) {
+      // 투표 요청 전송
+      await fetch(`${GAS_WEB_APP_URL}?action=vote&option=${option}`);
+      // 투표 완료 후 최신 결과 다시 불러오기
+      fetchResults();
+    }
+
+    // 백분율 계산 및 CSS 바 차트 그리기
+    function renderChart(data) {
+      const container = document.getElementById('chart-container');
+      container.innerHTML = '';
+
+      // 전체 투표수 합산
+      let totalVotes = 0;
+      for (const key in data) {
+        totalVotes += data[key];
+      }
+
+      // 각 항목별 백분율 차트 생성
+      for (const key in data) {
+        const count = data[key];
+        const percent = totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100);
+
+        container.innerHTML += `
+          <div class="result-box">
+            <span>${key}: ${count}표 (${percent}%)</span>
+            <div class="bar-bg">
+              <div class="bar-fill" style="width: ${percent}%"></div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // 페이지 로드 시 초기 데이터 호출
+    window.onload = fetchResults;
+  </script>
+</body>
+</html>
